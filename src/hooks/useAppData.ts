@@ -50,12 +50,14 @@ export function useAppData() {
   const addObra = async (name: string, clientName: string) => {
     if (!supabase) return;
     const { data, error } = await supabase.from('obras').insert({ name, client_name: clientName }).select().single();
+    if (error) console.error("Erro ao adicionar obra:", error);
     if (!error && data) setObras(prev => [data, ...prev]);
   };
 
   const deleteObra = async (id: string) => {
     if (!supabase) return;
     const { error } = await supabase.from('obras').delete().eq('id', id);
+    if (error) console.error("Erro ao deletar obra:", error);
     if (!error) {
       setObras(prev => prev.filter(o => o.id !== id));
       setGastos(prev => prev.filter(g => g.obra_id !== id));
@@ -71,23 +73,27 @@ export function useAppData() {
       category,
       receipt_url: receiptUrl || null
     }).select().single();
+    if (error) console.error("Erro ao adicionar gasto:", error);
     if (!error && data) setGastos(prev => [data, ...prev]);
   };
 
   const deleteGasto = async (id: string) => {
     if (!supabase) return;
     const { error } = await supabase.from('gastos').delete().eq('id', id);
+    if (error) console.error("Erro ao deletar gasto:", error);
     if (!error) setGastos(prev => prev.filter(g => g.id !== id));
   };
 
   const addFuncionario = async (name: string, dailyWage: number, obraIds: string[] = []) => {
     if (!supabase) return;
     const { data: newFunc, error } = await supabase.from('funcionarios').insert({ name, daily_wage: dailyWage }).select().single();
+    if (error) console.error("Erro ao adicionar funcionário:", error);
     if (!error && newFunc) {
       setFuncionarios(prev => [...prev, newFunc]);
       if (obraIds.length > 0) {
         const relations = obraIds.map(oId => ({ funcionario_id: newFunc.id, obra_id: oId }));
-        const { data: relData } = await supabase.from('funcionario_obras').insert(relations).select();
+        const { data: relData, error: relError } = await supabase.from('funcionario_obras').insert(relations).select();
+        if (relError) console.error("Erro ao vincular funcionário:", relError);
         if (relData) setFuncionarioObras(prev => [...prev, ...relData]);
       }
     }
@@ -96,6 +102,7 @@ export function useAppData() {
   const deleteFuncionario = async (id: string) => {
     if (!supabase) return;
     const { error } = await supabase.from('funcionarios').delete().eq('id', id);
+    if (error) console.error("Erro ao deletar funcionário:", error);
     if (!error) {
       setFuncionarios(prev => prev.filter(f => f.id !== id));
       setChamadas(prev => prev.filter(c => c.funcionario_id !== id));
@@ -111,6 +118,7 @@ export function useAppData() {
 
     const newChamada = { funcionario_id: funcionarioId, obra_id: obraId, week_start_date: weekStart };
     const { data, error } = await supabase.from('chamadas').insert(newChamada).select().single();
+    if (error) console.error("Erro ao criar chamada:", error);
     if (!error && data) {
       setChamadas(prev => [...prev, data]);
       return data;
@@ -130,6 +138,7 @@ export function useAppData() {
 
     if (chamada) {
       const { data, error } = await supabase.from('chamadas').update({ [day]: value }).eq('id', chamada.id).select().single();
+      if (error) console.error("Erro ao atualizar chamada:", error);
       if (!error && data) {
         setChamadas(prev => prev.map(c => c.id === data.id ? data : c));
       }
